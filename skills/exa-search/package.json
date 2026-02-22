@@ -5,6 +5,7 @@
 	"description": "Neural web search via Exa API - semantic search, content retrieval, and direct answers",
 	"license": "MIT",
 	"dependencies": {
-		"exa-js": "^2.4.0"
+		"exa-js": "^2.4.0",
+		"tsx": "^4.19.4"
 	}
 }

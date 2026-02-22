@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env npx tsx
 
 // Find pages semantically similar to a given URL — unique to Exa.
 
@@ -6,14 +6,14 @@ import Exa from "exa-js";
 
 const args = process.argv.slice(2);
 
-function extractFlag(flag) {
+function extractFlag(flag: string): boolean {
 	const i = args.indexOf(flag);
 	if (i === -1) return false;
 	args.splice(i, 1);
 	return true;
 }
 
-function extractOption(flag) {
+function extractOption(flag: string): string | null {
 	const i = args.indexOf(flag);
 	if (i === -1 || !args[i + 1]) return null;
 	const val = args[i + 1];
@@ -24,13 +24,13 @@ function extractOption(flag) {
 const fetchContent    = extractFlag("--content");
 const fetchHighlights = extractFlag("--highlights");
 const fetchSummary    = extractFlag("--summary");
-const numResults      = parseInt(extractOption("-n") || "5", 10);
-const excludeSource   = extractFlag("--exclude-source"); // exclude the source URL itself
+const numResults      = parseInt(extractOption("-n") ?? "5", 10);
+const excludeSource   = extractFlag("--exclude-source");
 
 const url = args[0];
 
 if (!url || !url.startsWith("http")) {
-	console.log("Usage: similar.js <url> [options]");
+	console.log("Usage: similar.ts <url> [options]");
 	console.log("\nFinds pages semantically similar in meaning to the given URL.");
 	console.log("\nOptions:");
 	console.log("  -n <num>          Number of results (default: 5)");
@@ -41,8 +41,8 @@ if (!url || !url.startsWith("http")) {
 	console.log("\nEnvironment:");
 	console.log("  EXA_API_KEY       Required. Your Exa API key.");
 	console.log("\nExamples:");
-	console.log("  similar.js https://example.com/some-article");
-	console.log("  similar.js https://github.com/vercel/next.js --highlights -n 8");
+	console.log("  similar.ts https://example.com/some-article");
+	console.log("  similar.ts https://github.com/vercel/next.js --highlights -n 8");
 	process.exit(1);
 }
 
@@ -61,7 +61,7 @@ try {
 		...(excludeSource && { excludeSourceDomain: true }),
 	};
 
-	let results;
+	let results: Awaited<ReturnType<typeof exa.findSimilar>>["results"];
 
 	if (fetchContent || fetchHighlights || fetchSummary) {
 		const res = await exa.findSimilarAndContents(url, {
@@ -86,19 +86,19 @@ try {
 	for (let i = 0; i < results.length; i++) {
 		const r = results[i];
 		console.log(`--- Result ${i + 1} ---`);
-		console.log(`Title: ${r.title || "(no title)"}`);
+		console.log(`Title: ${r.title ?? "(no title)"}`);
 		console.log(`Link: ${r.url}`);
 		if (r.publishedDate) console.log(`Published: ${r.publishedDate.slice(0, 10)}`);
-		if (r.author)        console.log(`Author: ${r.author}`);
+		if ("author" in r && r.author)       console.log(`Author: ${r.author}`);
 		if (r.score != null) console.log(`Score: ${r.score.toFixed(4)}`);
 
-		if (r.summary)    console.log(`Summary:\n${r.summary}`);
-		if (r.highlights) console.log(`Highlights:\n${r.highlights.map(h => `  • ${h}`).join("\n")}`);
-		if (r.text)       console.log(`Content:\n${r.text.trim()}`);
+		if ("summary" in r && r.summary)       console.log(`Summary:\n${r.summary}`);
+		if ("highlights" in r && r.highlights) console.log(`Highlights:\n${(r.highlights as string[]).map((h) => `  • ${h}`).join("\n")}`);
+		if ("text" in r && r.text)             console.log(`Content:\n${(r.text as string).trim()}`);
 
 		console.log("");
 	}
 } catch (e) {
-	console.error(`Error: ${e.message}`);
+	console.error(`Error: ${(e as Error).message}`);
 	process.exit(1);
 }

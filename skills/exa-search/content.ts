@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env npx tsx
 
 // Fetch clean, parsed content from one or more URLs via Exa's content API.
 // No HTML scraping — Exa returns pre-cleaned markdown-ready text.
@@ -7,7 +7,7 @@ import Exa from "exa-js";
 
 const args = process.argv.slice(2);
 
-function extractFlag(flag) {
+function extractFlag(flag: string): boolean {
 	const i = args.indexOf(flag);
 	if (i === -1) return false;
 	args.splice(i, 1);
@@ -17,10 +17,10 @@ function extractFlag(flag) {
 const withHighlights = extractFlag("--highlights");
 const withSummary    = extractFlag("--summary");
 
-const urls = args.filter(a => a.startsWith("http"));
+const urls = args.filter((a) => a.startsWith("http"));
 
 if (urls.length === 0) {
-	console.log("Usage: content.js <url> [url2 ...] [options]");
+	console.log("Usage: content.ts <url> [url2 ...] [options]");
 	console.log("\nFetches clean text content from one or more URLs via Exa.");
 	console.log("\nOptions:");
 	console.log("  --highlights   Include content highlights instead of full text");
@@ -28,9 +28,9 @@ if (urls.length === 0) {
 	console.log("\nEnvironment:");
 	console.log("  EXA_API_KEY    Required. Your Exa API key.");
 	console.log("\nExamples:");
-	console.log("  content.js https://example.com/article");
-	console.log("  content.js https://example.com/article --summary");
-	console.log("  content.js https://site1.com/page https://site2.com/page");
+	console.log("  content.ts https://example.com/article");
+	console.log("  content.ts https://example.com/article --summary");
+	console.log("  content.ts https://site1.com/page https://site2.com/page");
 	process.exit(1);
 }
 
@@ -46,8 +46,8 @@ const exa = new Exa(apiKey);
 try {
 	const contentsOpts = {
 		...(!withHighlights && { text: { maxCharacters: 10000 } }),
-		...(withHighlights && { highlights: { numSentences: 5, highlightsPerUrl: 5 } }),
-		...(withSummary    && { summary: true }),
+		...(withHighlights  && { highlights: { numSentences: 5, highlightsPerUrl: 5 } }),
+		...(withSummary     && { summary: true }),
 	};
 
 	const res = await exa.getContents(urls, contentsOpts);
@@ -62,16 +62,16 @@ try {
 		if (res.results.length > 1) console.log(`--- ${r.url} ---\n`);
 
 		if (r.title)         console.log(`# ${r.title}\n`);
-		if (r.author)        console.log(`Author: ${r.author}`);
+		if ("author" in r && r.author)        console.log(`Author: ${r.author}`);
 		if (r.publishedDate) console.log(`Published: ${r.publishedDate.slice(0, 10)}\n`);
 
-		if (r.summary)    console.log(`Summary:\n${r.summary}\n`);
-		if (r.highlights) console.log(`Highlights:\n${r.highlights.map(h => `  • ${h}`).join("\n")}\n`);
-		if (r.text)       console.log(r.text.trim());
+		if ("summary" in r && r.summary)       console.log(`Summary:\n${r.summary}\n`);
+		if ("highlights" in r && r.highlights) console.log(`Highlights:\n${(r.highlights as string[]).map((h) => `  • ${h}`).join("\n")}\n`);
+		if ("text" in r && r.text)             console.log((r.text as string).trim());
 
 		if (i < res.results.length - 1) console.log("\n");
 	}
 } catch (e) {
-	console.error(`Error: ${e.message}`);
+	console.error(`Error: ${(e as Error).message}`);
 	process.exit(1);
 }

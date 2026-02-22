@@ -26,18 +26,18 @@ Neural web search and content retrieval using the Exa API. Unlike keyword-based 
 ## Search
 
 ```bash
-{baseDir}/search.js "query"                                  # Basic neural search (5 results)
-{baseDir}/search.js "query" -n 10                            # More results (max 20)
-{baseDir}/search.js "query" --content                        # Include full page text
-{baseDir}/search.js "query" --highlights                     # Include content highlights (shorter)
-{baseDir}/search.js "query" --summary                        # Include AI summary per result
-{baseDir}/search.js "query" --type keyword                   # Force keyword (BM25) search
-{baseDir}/search.js "query" --type neural                    # Force semantic/neural search
-{baseDir}/search.js "query" --category news                  # Filter by category
-{baseDir}/search.js "query" --domain github.com              # Restrict to one domain
-{baseDir}/search.js "query" --after 2025-01-01               # Results after date
-{baseDir}/search.js "query" --before 2025-06-01              # Results before date
-{baseDir}/search.js "query" -n 3 --highlights --after 2025-01-01  # Combined
+{baseDir}/search.ts "query"                                  # Basic neural search (5 results)
+{baseDir}/search.ts "query" -n 10                            # More results (max 20)
+{baseDir}/search.ts "query" --content                        # Include full page text
+{baseDir}/search.ts "query" --highlights                     # Include content highlights (shorter)
+{baseDir}/search.ts "query" --summary                        # Include AI summary per result
+{baseDir}/search.ts "query" --type keyword                   # Force keyword (BM25) search
+{baseDir}/search.ts "query" --type neural                    # Force semantic/neural search
+{baseDir}/search.ts "query" --category news                  # Filter by category
+{baseDir}/search.ts "query" --domain github.com              # Restrict to one domain
+{baseDir}/search.ts "query" --after 2025-01-01               # Results after date
+{baseDir}/search.ts "query" --before 2025-06-01              # Results before date
+{baseDir}/search.ts "query" -n 3 --highlights --after 2025-01-01  # Combined
 ```
 
 ### Options
@@ -59,10 +59,10 @@ Neural web search and content retrieval using the Exa API. Unlike keyword-based 
 Find pages semantically similar in meaning to a known URL. Unique to Exa.
 
 ```bash
-{baseDir}/similar.js https://example.com/article              # Find similar pages
-{baseDir}/similar.js https://example.com/article -n 8         # More results
-{baseDir}/similar.js https://github.com/vercel/next.js --highlights
-{baseDir}/similar.js https://example.com --summary --exclude-source
+{baseDir}/similar.ts https://example.com/article              # Find similar pages
+{baseDir}/similar.ts https://example.com/article -n 8         # More results
+{baseDir}/similar.ts https://github.com/vercel/next.js --highlights
+{baseDir}/similar.ts https://example.com --summary --exclude-source
 ```
 
 ### Options
@@ -80,10 +80,10 @@ Find pages semantically similar in meaning to a known URL. Unique to Exa.
 Get clean, pre-parsed text from one or more URLs via Exa's content API. No HTML scraping needed.
 
 ```bash
-{baseDir}/content.js https://example.com/article
-{baseDir}/content.js https://example.com/article --summary
-{baseDir}/content.js https://site1.com/page https://site2.com/page
-{baseDir}/content.js https://example.com/article --highlights
+{baseDir}/content.ts https://example.com/article
+{baseDir}/content.ts https://example.com/article --summary
+{baseDir}/content.ts https://site1.com/page https://site2.com/page
+{baseDir}/content.ts https://example.com/article --highlights
 ```
 
 ### Options
@@ -98,9 +98,9 @@ Get clean, pre-parsed text from one or more URLs via Exa's content API. No HTML 
 Get an AI-generated answer to a question, grounded in live web results with citations.
 
 ```bash
-{baseDir}/answer.js "What is the latest stable version of Node.js?"
-{baseDir}/answer.js "How does React Server Components work?"
-{baseDir}/answer.js "What are the main differences between Bun and Deno?"
+{baseDir}/answer.ts "What is the latest stable version of Node.js?"
+{baseDir}/answer.ts "How does React Server Components work?"
+{baseDir}/answer.ts "What are the main differences between Bun and Deno?"
 ```
 
 Returns the answer followed by numbered source citations.
@@ -136,8 +136,8 @@ Content:
 |---|---|
 | Semantic / conceptual query ("pages about X idea") | **Exa** (`--type neural`) |
 | Exact keyword / phrase match | Brave or Exa `--type keyword` |
-| Find pages similar to a known URL | **Exa** `similar.js` |
-| Get a direct answer with citations | **Exa** `answer.js` |
+| Find pages similar to a known URL | **Exa** `similar.ts` |
+| Get a direct answer with citations | **Exa** `answer.ts` |
 | Filter by content type (papers, tweets, GitHub) | **Exa** `--category` |
-| Fetch content from a URL without scraping | **Exa** `content.js` |
+| Fetch content from a URL without scraping | **Exa** `content.ts` |
 | General web search, news, country-specific results | Brave |

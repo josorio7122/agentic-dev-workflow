@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env npx tsx
 
 // Get a direct AI-generated answer to a question, grounded in live web results.
 // Unique to Exa — returns an answer + citations.
@@ -8,14 +8,14 @@ import Exa from "exa-js";
 const query = process.argv.slice(2).join(" ").trim();
 
 if (!query) {
-	console.log("Usage: answer.js <question>");
+	console.log("Usage: answer.ts <question>");
 	console.log("\nReturns a direct AI-generated answer grounded in live web sources.");
 	console.log("\nEnvironment:");
 	console.log("  EXA_API_KEY    Required. Your Exa API key.");
 	console.log("\nExamples:");
-	console.log('  answer.js "What is the latest version of Node.js?"');
-	console.log('  answer.js "How does React Server Components work?"');
-	console.log('  answer.js "What are the main differences between Bun and Deno?"');
+	console.log('  answer.ts "What is the latest version of Node.js?"');
+	console.log('  answer.ts "How does React Server Components work?"');
+	console.log('  answer.ts "What are the main differences between Bun and Deno?"');
 	process.exit(1);
 }
 
@@ -38,12 +38,12 @@ try {
 		console.log("Sources:");
 		for (let i = 0; i < res.citations.length; i++) {
 			const c = res.citations[i];
-			console.log(`  [${i + 1}] ${c.title || "(no title)"}`);
+			console.log(`  [${i + 1}] ${c.title ?? "(no title)"}`);
 			console.log(`      ${c.url}`);
 			if (c.publishedDate) console.log(`      Published: ${c.publishedDate.slice(0, 10)}`);
 		}
 	}
 } catch (e) {
-	console.error(`Error: ${e.message}`);
+	console.error(`Error: ${(e as Error).message}`);
 	process.exit(1);
 }

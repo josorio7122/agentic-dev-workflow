@@ -1,17 +1,17 @@
-#!/usr/bin/env node
+#!/usr/bin/env npx tsx
 
 import Exa from "exa-js";
 
 const args = process.argv.slice(2);
 
-function extractFlag(flag) {
+function extractFlag(flag: string): boolean {
 	const i = args.indexOf(flag);
 	if (i === -1) return false;
 	args.splice(i, 1);
 	return true;
 }
 
-function extractOption(flag) {
+function extractOption(flag: string): string | null {
 	const i = args.indexOf(flag);
 	if (i === -1 || !args[i + 1]) return null;
 	const val = args[i + 1];
@@ -23,17 +23,17 @@ const fetchContent    = extractFlag("--content");
 const fetchHighlights = extractFlag("--highlights");
 const fetchSummary    = extractFlag("--summary");
 
-let numResults = parseInt(extractOption("-n") || "5", 10);
-const type     = extractOption("--type")     || "auto";     // auto | neural | keyword
-const category = extractOption("--category") || undefined;  // news | tweet | github | pdf | paper | ...
-const domain   = extractOption("--domain")   || undefined;
-const after    = extractOption("--after")    || undefined;  // YYYY-MM-DD
-const before   = extractOption("--before")   || undefined;  // YYYY-MM-DD
+const numResults = parseInt(extractOption("-n") ?? "5", 10);
+const type       = extractOption("--type")     ?? "auto";    // auto | neural | keyword
+const category   = extractOption("--category") ?? undefined; // news | tweet | github | pdf | paper | ...
+const domain     = extractOption("--domain")   ?? undefined;
+const after      = extractOption("--after")    ?? undefined; // YYYY-MM-DD
+const before     = extractOption("--before")   ?? undefined; // YYYY-MM-DD
 
 const query = args.join(" ").trim();
 
 if (!query) {
-	console.log("Usage: search.js <query> [options]");
+	console.log("Usage: search.ts <query> [options]");
 	console.log("\nOptions:");
 	console.log("  -n <num>           Number of results (default: 5)");
 	console.log("  --type <type>      Search type: auto (default), neural, keyword");
@@ -47,10 +47,10 @@ if (!query) {
 	console.log("\nEnvironment:");
 	console.log("  EXA_API_KEY        Required. Your Exa API key.");
 	console.log("\nExamples:");
-	console.log('  search.js "javascript async await"');
-	console.log('  search.js "rust ownership" --content -n 3');
-	console.log('  search.js "AI news" --category news --after 2025-01-01 --highlights');
-	console.log('  search.js "react hooks" --domain github.com --type keyword');
+	console.log('  search.ts "javascript async await"');
+	console.log('  search.ts "rust ownership" --content -n 3');
+	console.log('  search.ts "AI news" --category news --after 2025-01-01 --highlights');
+	console.log('  search.ts "react hooks" --domain github.com --type keyword');
 	process.exit(1);
 }
 
@@ -68,12 +68,12 @@ try {
 		numResults: Math.min(numResults, 20),
 		type,
 		...(category && { category }),
-		...(domain && { includeDomains: [domain] }),
-		...(after  && { startPublishedDate: new Date(after).toISOString() }),
-		...(before && { endPublishedDate:   new Date(before).toISOString() }),
-	};
+		...(domain   && { includeDomains: [domain] }),
+		...(after    && { startPublishedDate: new Date(after).toISOString() }),
+		...(before   && { endPublishedDate:   new Date(before).toISOString() }),
+	} as const;
 
-	let results;
+	let results: Awaited<ReturnType<typeof exa.search>>["results"];
 
 	if (fetchContent || fetchHighlights || fetchSummary) {
 		const contentsOpts = {
@@ -97,19 +97,19 @@ try {
 	for (let i = 0; i < results.length; i++) {
 		const r = results[i];
 		console.log(`--- Result ${i + 1} ---`);
-		console.log(`Title: ${r.title || "(no title)"}`);
+		console.log(`Title: ${r.title ?? "(no title)"}`);
 		console.log(`Link: ${r.url}`);
 		if (r.publishedDate) console.log(`Published: ${r.publishedDate.slice(0, 10)}`);
-		if (r.author)        console.log(`Author: ${r.author}`);
+		if ("author" in r && r.author)       console.log(`Author: ${r.author}`);
 		if (r.score != null) console.log(`Score: ${r.score.toFixed(4)}`);
 
-		if (r.summary)    console.log(`Summary:\n${r.summary}`);
-		if (r.highlights) console.log(`Highlights:\n${r.highlights.map(h => `  • ${h}`).join("\n")}`);
-		if (r.text)       console.log(`Content:\n${r.text.trim()}`);
+		if ("summary" in r && r.summary)       console.log(`Summary:\n${r.summary}`);
+		if ("highlights" in r && r.highlights) console.log(`Highlights:\n${(r.highlights as string[]).map((h) => `  • ${h}`).join("\n")}`);
+		if ("text" in r && r.text)             console.log(`Content:\n${(r.text as string).trim()}`);
 
 		console.log("");
 	}
 } catch (e) {
-	console.error(`Error: ${e.message}`);
+	console.error(`Error: ${(e as Error).message}`);
 	process.exit(1);
 }
