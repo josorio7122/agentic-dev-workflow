@@ -10,6 +10,14 @@
  *   - Chain: { chain: [{ agent: "name", task: "... {previous} ..." }, ...] }
  *
  * Uses JSON mode to capture structured output from subagents.
+ *
+ * Based on the subagent extension example from badlogic/pi-mono:
+ * https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent/examples/extensions/subagent
+ *
+ * The base example ships with 4 agents (planner, reviewer, scout, worker).
+ * This package extends it with a full agentic development workflow roster:
+ * architect, code-quality-reviewer, debugger, documenter, implementer,
+ * researcher, reviewer, scout, security-reviewer, spec-reviewer, worker.
  */
 
 import { spawn } from "node:child_process";

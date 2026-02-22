@@ -5,21 +5,23 @@ A state-of-the-art agentic development workflow for [pi](https://github.com/badl
 ## Install
 
 ```bash
-pi install /path/to/agentic-dev-workflow
+pi install git:github.com/josorio7122/agentic-dev-workflow
 ```
 
-Or from git once published:
+For browser automation (optional, separate package):
 
 ```bash
-pi install git:github.com/yourname/agentic-dev-workflow
+pi install git:github.com/josorio7122/pi-browser-tools
 ```
 
 ## What's Included
 
-- **14 skills** — full workflow from research through shipping
+- **13 skills** — full workflow from research through shipping
 - **11 agents** — specialist subagents for every phase
 - **2 extensions** — workflow phase status bar, PR review widget
 - **1 prompt template** — `/pr-review` for deep GitHub PR analysis
+
+> **Browser automation** is a separate package: [josorio7122/pi-browser-tools](https://github.com/josorio7122/pi-browser-tools) — Chrome DevTools Protocol tools for interactive frontend testing. Install separately if needed: `pi install git:github.com/josorio7122/pi-browser-tools`
 
 ---
 
@@ -200,6 +202,7 @@ brainstorming → writing-plans → subagent-driven-development → finishing-a-
 | `brave-search` | Keyword web search, news, reference pages |
 | `frontend-design` | Web pages, landing pages, marketing sites |
 | `interface-design` | Dashboards, admin panels, application UI |
+| `browser-tools` | Chrome automation — separate package: [josorio7122/pi-browser-tools](https://github.com/josorio7122/pi-browser-tools) |
 
 ### Invoking skills
 
@@ -275,4 +278,5 @@ Just paste a GitHub PR URL. The `/pr-review` prompt activates automatically, sho
 - `gh` CLI installed and authenticated (for pr-review)
 - `EXA_API_KEY` in your shell profile (for exa-search)
 - `BRAVE_API_KEY` in your shell profile (for brave-search)
-- Run `npm install` in `skills/brave-search/`, `skills/exa-search/`, `skills/browser-tools/` before first use
+- Run `npm install` in `skills/brave-search/` and `skills/exa-search/` before first use
+- For browser automation: install [josorio7122/pi-browser-tools](https://github.com/josorio7122/pi-browser-tools) separately
