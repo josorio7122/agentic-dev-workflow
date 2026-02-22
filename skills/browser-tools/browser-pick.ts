@@ -1,28 +1,43 @@
-#!/usr/bin/env node
+#!/usr/bin/env npx tsx
 
-import puppeteer from "puppeteer-core";
+import puppeteer, { Browser, Page } from "puppeteer-core";
+
+interface ElementInfo {
+	tag: string;
+	id: string | null;
+	class: string | null;
+	text: string | null;
+	html: string;
+	parents: string;
+}
+
+declare global {
+	interface Window {
+		pick: (msg: string) => Promise<ElementInfo | ElementInfo[] | null>;
+	}
+}
 
 const message = process.argv.slice(2).join(" ");
 if (!message) {
-	console.log("Usage: browser-pick.js 'message'");
+	console.log("Usage: browser-pick.ts 'message'");
 	console.log("\nExample:");
-	console.log('  browser-pick.js "Click the submit button"');
+	console.log('  browser-pick.ts "Click the submit button"');
 	process.exit(1);
 }
 
-const b = await Promise.race([
+const b = (await Promise.race([
 	puppeteer.connect({
 		browserURL: "http://localhost:9222",
 		defaultViewport: null,
 	}),
-	new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 5000)),
-]).catch((e) => {
+	new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), 5000)),
+]).catch((e: Error) => {
 	console.error("✗ Could not connect to browser:", e.message);
-	console.error("  Run: browser-start.js");
+	console.error("  Run: browser-start.ts");
 	process.exit(1);
-});
+})) as Browser;
 
-const p = (await b.pages()).at(-1);
+const p = (await b.pages()).at(-1) as Page | undefined;
 
 if (!p) {
 	console.error("✗ No active tab found");
@@ -37,8 +52,8 @@ await p.evaluate(() => {
 				throw new Error("pick() requires a message parameter");
 			}
 			return new Promise((resolve) => {
-				const selections = [];
-				const selectedElements = new Set();
+				const selections: ElementInfo[] = [];
+				const selectedElements = new Set<Element>();
 
 				const overlay = document.createElement("div");
 				overlay.style.cssText =
@@ -67,19 +82,19 @@ await p.evaluate(() => {
 					overlay.remove();
 					banner.remove();
 					selectedElements.forEach((el) => {
-						el.style.outline = "";
+						(el as HTMLElement).style.outline = "";
 					});
 				};
 
-				const onMove = (e) => {
+				const onMove = (e: MouseEvent) => {
 					const el = document.elementFromPoint(e.clientX, e.clientY);
 					if (!el || overlay.contains(el) || banner.contains(el)) return;
 					const r = el.getBoundingClientRect();
 					highlight.style.cssText = `position:absolute;border:2px solid #3b82f6;background:rgba(59,130,246,0.1);top:${r.top}px;left:${r.left}px;width:${r.width}px;height:${r.height}px`;
 				};
 
-				const buildElementInfo = (el) => {
-					const parents = [];
+				const buildElementInfo = (el: Element): ElementInfo => {
+					const parents: string[] = [];
 					let current = el.parentElement;
 					while (current && current !== document.body) {
 						const parentInfo = current.tagName.toLowerCase();
@@ -95,14 +110,14 @@ await p.evaluate(() => {
 						tag: el.tagName.toLowerCase(),
 						id: el.id || null,
 						class: el.className || null,
-						text: el.textContent?.trim().slice(0, 200) || null,
+						text: el.textContent?.trim().slice(0, 200) ?? null,
 						html: el.outerHTML.slice(0, 500),
 						parents: parents.join(" > "),
 					};
 				};
 
-				const onClick = (e) => {
-					if (banner.contains(e.target)) return;
+				const onClick = (e: MouseEvent) => {
+					if (banner.contains(e.target as Node)) return;
 					e.preventDefault();
 					e.stopPropagation();
 					const el = document.elementFromPoint(e.clientX, e.clientY);
@@ -111,7 +126,7 @@ await p.evaluate(() => {
 					if (e.metaKey || e.ctrlKey) {
 						if (!selectedElements.has(el)) {
 							selectedElements.add(el);
-							el.style.outline = "3px solid #10b981";
+							(el as HTMLElement).style.outline = "3px solid #10b981";
 							selections.push(buildElementInfo(el));
 							updateBanner();
 						}
@@ -122,7 +137,7 @@ await p.evaluate(() => {
 					}
 				};
 
-				const onKey = (e) => {
+				const onKey = (e: KeyboardEvent) => {
 					if (e.key === "Escape") {
 						e.preventDefault();
 						cleanup();
@@ -142,7 +157,7 @@ await p.evaluate(() => {
 	}
 });
 
-const result = await p.evaluate((msg) => window.pick(msg), message);
+const result = await p.evaluate((msg: string) => window.pick(msg), message);
 
 if (Array.isArray(result)) {
 	for (let i = 0; i < result.length; i++) {

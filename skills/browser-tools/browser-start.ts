@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env npx tsx
 
 import { spawn, execSync } from "node:child_process";
 import puppeteer from "puppeteer-core";
@@ -6,7 +6,7 @@ import puppeteer from "puppeteer-core";
 const useProfile = process.argv[2] === "--profile";
 
 if (process.argv[2] && process.argv[2] !== "--profile") {
-	console.log("Usage: browser-start.js [--profile]");
+	console.log("Usage: browser-start.ts [--profile]");
 	console.log("\nOptions:");
 	console.log("  --profile  Copy your default Chrome profile (cookies, logins)");
 	process.exit(1);
