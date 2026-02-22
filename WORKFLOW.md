@@ -53,6 +53,7 @@ All five are designed, not just the prompt.
 - **Two-stage review** — spec compliance then code quality, never skipped
 - **Parallel where independent** — but only when no shared state
 - **YAGNI** — build only what's needed
+- **Idempotent SQL** — every SQL file must be safe to re-run; rewrite generated files immediately (see Phase 4)
 
 ---
 
@@ -226,6 +227,23 @@ All five are designed, not just the prompt.
 - 1-5 files: safe for parallel agent dispatch
 - 6-20 files: single agent with monitoring
 - 20+ files: break into smaller tasks or request options first
+
+**Idempotent SQL rule — mandatory for every SQL file:**
+
+Any time a CLI tool generates a SQL migration file (drizzle-kit generate, alembic revision, flyway, sqitch, etc.) — read the file immediately and rewrite every statement to be safe to re-run:
+
+| Statement | Idempotent form |
+|-----------|----------------|
+| `CREATE TABLE` | `CREATE TABLE IF NOT EXISTS` |
+| `CREATE INDEX` | `CREATE INDEX IF NOT EXISTS` |
+| `CREATE TYPE` (Postgres enum) | `DO $$ BEGIN ... EXCEPTION WHEN duplicate_object THEN NULL; END $$` |
+| `ALTER TABLE ... ADD COLUMN` | `DO $$ BEGIN ... EXCEPTION WHEN duplicate_column THEN NULL; END $$` |
+| `ALTER TABLE ... ADD CONSTRAINT` | `DO $$ BEGIN ... EXCEPTION WHEN duplicate_object THEN NULL; END $$` |
+| `DROP TABLE` | `DROP TABLE IF EXISTS` |
+| `DROP INDEX` | `DROP INDEX IF EXISTS` |
+| `DROP COLUMN` | `ALTER TABLE ... DROP COLUMN IF EXISTS` |
+
+Applies to **every** generated migration without exception — including the first one. A migration that errors on re-run breaks CI, team onboarding, and disaster recovery.
 
 ---
 
