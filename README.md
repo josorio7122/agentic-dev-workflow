@@ -18,7 +18,7 @@ pi install git:github.com/yourname/agentic-dev-workflow
 
 - **14 skills** — full workflow from research through shipping
 - **11 agents** — specialist subagents for every phase
-- **3 extensions** — context budget indicator, workflow phase status bar, PR review widget
+- **2 extensions** — workflow phase status bar, PR review widget
 - **1 prompt template** — `/pr-review` for deep GitHub PR analysis
 
 ---
@@ -145,23 +145,15 @@ You get a PR URL. Done.
 
 ---
 
-## The Context Budget
-
-The footer shows `ctx:23%` at all times. When it hits 40%, you see `ctx:43% → subagent` — a nudge to offload the next large operation. At 60% it becomes `ctx:61% ⚠ offload` — actively stop reading large files or running commands in the main session.
-
-This is why subagents exist. A scout reading 50 files eats maybe 30k tokens. If that happens in the main session, that's 30k tokens gone from your orchestration budget. In a subagent, it's isolated — the main session only sees the compressed summary.
-
----
-
 ## The Workflow Status Bar
 
-The footer also shows where you are in the workflow:
+The footer shows where you are in the workflow:
 
 ```
-✓research → ✓understand → ✓brainstorm → [plan] → execute → review → ship
+understand → [brainstorm] → spec → plan → execute → review → ship
 ```
 
-It updates automatically as skills announce themselves. You always know which phase you're in.
+It updates automatically as skills are loaded. You always know which phase you're in.
 
 ---
 
@@ -261,7 +253,7 @@ The main session stays light. It orchestrates. The heavy lifting happens in isol
 
 **Security-reviewer flags something:** This is the point — find it here, not in production. Pi dispatches the implementer with the security findings, re-runs security review after the fix.
 
-**Context budget hits 60%:** Stop reading files in the main session. Dispatch a scout to do the reading and return a summary.
+**Context getting large:** Stop reading files in the main session. Dispatch a scout to do the reading and return a summary.
 
 ---
 
