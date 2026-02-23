@@ -327,7 +327,13 @@ async function runSingleAgent(
 		let wasAborted = false;
 
 		const exitCode = await new Promise<number>((resolve) => {
-			const proc = spawn("pi", args, { cwd: cwd ?? defaultCwd, shell: false, stdio: ["ignore", "pipe", "pipe"] });
+			const currentDepth = parseInt(process.env.PI_SUBAGENT_DEPTH ?? "0", 10);
+			const proc = spawn("pi", args, {
+				cwd: cwd ?? defaultCwd,
+				shell: false,
+				stdio: ["ignore", "pipe", "pipe"],
+				env: { ...process.env, PI_SUBAGENT_DEPTH: String(currentDepth + 1) },
+			});
 			let buffer = "";
 
 			const processLine = (line: string) => {
@@ -449,6 +455,16 @@ const SubagentParams = Type.Object({
 });
 
 export default function (pi: ExtensionAPI) {
+	// Guard against recursive subagent spawning.
+	// The --tools CLI flag only filters built-in tools (read, bash, edit, etc.).
+	// Extension tools like `subagent` are always loaded in every spawned `pi` process.
+	// Without this guard, subagents can spawn their own subagents indefinitely,
+	// creating deep process trees where every ancestor must stay alive waiting for
+	// its children — resulting in dozens of pi processes accumulating in Activity Monitor.
+	if (process.env.PI_SUBAGENT_DEPTH) {
+		return; // Already inside a subagent — do not register this tool
+	}
+
 	pi.registerTool({
 		name: "subagent",
 		label: "Subagent",
