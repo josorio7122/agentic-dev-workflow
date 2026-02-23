@@ -183,8 +183,24 @@ function getFinalOutput(messages: Message[]): string {
 type DisplayItem = { type: "text"; text: string } | { type: "toolCall"; name: string; args: Record<string, any> };
 
 /**
- * Build a human-readable error summary from all available failure signals.
- * Priority: errorMessage > stderr > last output > exit code only.
+ * Extract meaningful lines from stderr, stripping Node.js stack frames.
+ * The real error is always at the START; stacks appear at the END.
+ */
+function parseSterr(stderr: string): { meaningful: string[]; hasStacks: boolean } {
+	const lines = stderr.split("\n").map((l) => l.trim()).filter(Boolean);
+	const isStackFrame = (l: string) =>
+		l.startsWith("at ") ||
+		l.startsWith("(node:") ||
+		/^Node\.js v\d/.test(l) ||
+		l === "^" ||
+		/^\s*\^+\s*$/.test(l);
+	const meaningful = lines.filter((l) => !isStackFrame(l));
+	return { meaningful, hasStacks: meaningful.length < lines.length };
+}
+
+/**
+ * One-line error summary for collapsed view.
+ * Priority: errorMessage > meaningful stderr lines > last output > exit code only.
  */
 function formatError(r: SingleResult): string {
 	const parts: string[] = [];
@@ -200,22 +216,10 @@ function formatError(r: SingleResult): string {
 	}
 	const stderr = r.stderr?.trim();
 	if (stderr) {
-		// The actual error message is always at the START of stderr.
-		// Node.js unhandled rejection stacks appear at the END — don't show those.
-		// Strategy: take the first non-empty line as the primary signal,
-		// skip lines that look like Node.js stack frames or "Node.js vX" footers.
-		const lines = stderr.split("\n").map((l) => l.trim()).filter(Boolean);
-		const isStackFrame = (l: string) =>
-			l.startsWith("at ") || l.startsWith("(node:") || /^Node\.js v\d/.test(l) || l === "^";
-		const meaningfulLines = lines.filter((l) => !isStackFrame(l));
-		if (meaningfulLines.length > 0) {
-			// Show up to 3 meaningful lines so multi-line API errors are readable
-			const preview = meaningfulLines.slice(0, 3).join(" | ");
-			parts.push(`stderr: ${preview}`);
-		} else if (lines.length > 0) {
-			// All lines were stack frames — at least show the first one
-			const trimmed = stderr.length > 300 ? `${stderr.slice(0, 300)}...` : stderr;
-			parts.push(`stderr: ${trimmed}`);
+		const { meaningful } = parseSterr(stderr);
+		if (meaningful.length > 0) {
+			// Up to 3 lines joined — covers multi-line errors like "Warning: lock\nError: no API key"
+			parts.push(meaningful.slice(0, 3).join(" | "));
 		}
 	}
 	if (parts.length === 0) {
@@ -225,10 +229,34 @@ function formatError(r: SingleResult): string {
 			const preview = lastOutput.length > 200 ? `${lastOutput.slice(0, 200)}...` : lastOutput;
 			parts.push(preview);
 		} else {
-			parts.push("no output — subprocess may have crashed silently");
+			parts.push("subprocess crashed with no output");
 		}
 	}
 	return parts.join(" · ");
+}
+
+/**
+ * Multi-line error detail for expanded view.
+ */
+function formatErrorExpanded(r: SingleResult): string {
+	const lines: string[] = [];
+	if (r.stopReason && r.stopReason !== "end_turn") lines.push(`Stop reason: ${r.stopReason}`);
+	if (r.exitCode !== 0) lines.push(`Exit code: ${r.exitCode}`);
+	if (r.errorMessage) lines.push(`Error: ${r.errorMessage.trim()}`);
+	const stderr = r.stderr?.trim();
+	if (stderr) {
+		const { meaningful, hasStacks } = parseSterr(stderr);
+		if (meaningful.length > 0) {
+			lines.push("─── stderr ───");
+			lines.push(...meaningful);
+			if (hasStacks) lines.push("(Node.js stack trace stripped)");
+		}
+	}
+	if (lines.length === 0) {
+		const lastOutput = getFinalOutput(r.messages);
+		lines.push(lastOutput ? `Last output: ${lastOutput.slice(0, 300)}` : "subprocess crashed with no output");
+	}
+	return lines.join("\n");
 }
 
 function getDisplayItems(messages: Message[]): DisplayItem[] {
@@ -248,15 +276,24 @@ async function mapWithConcurrencyLimit<TIn, TOut>(
 	items: TIn[],
 	concurrency: number,
 	fn: (item: TIn, index: number) => Promise<TOut>,
+	// Stagger delay between launches (ms). Prevents pi subprocesses from racing to
+	// acquire the settings/auth lockfile at startup when spawned simultaneously.
+	staggerMs = 300,
 ): Promise<TOut[]> {
 	if (items.length === 0) return [];
 	const limit = Math.max(1, Math.min(concurrency, items.length));
 	const results: TOut[] = new Array(items.length);
 	let nextIndex = 0;
+	let launchCount = 0;
 	const workers = new Array(limit).fill(null).map(async () => {
 		while (true) {
 			const current = nextIndex++;
 			if (current >= items.length) return;
+			// Stagger each launch to avoid concurrent lockfile contention
+			if (staggerMs > 0 && launchCount > 0) {
+				await new Promise((r) => setTimeout(r, staggerMs));
+			}
+			launchCount++;
 			results[current] = await fn(items[current], current);
 		}
 	});
@@ -806,7 +843,7 @@ export default function (pi: ExtensionAPI) {
 					if (isError) header += ` ${theme.fg("error", `[${r.stopReason || "failed"}]`)}`;
 					container.addChild(new Text(header, 0, 0));
 					if (isError)
-						container.addChild(new Text(theme.fg("error", formatError(r)), 0, 0));
+						container.addChild(new Text(theme.fg("error", formatErrorExpanded(r)), 0, 0));
 					container.addChild(new Spacer(1));
 					container.addChild(new Text(theme.fg("muted", "─── Task ───"), 0, 0));
 					container.addChild(new Text(theme.fg("dim", r.task), 0, 0));
@@ -996,7 +1033,7 @@ export default function (pi: ExtensionAPI) {
 						container.addChild(new Text(theme.fg("muted", "Task: ") + theme.fg("dim", r.task), 0, 0));
 
 						if (rError) {
-							container.addChild(new Text(theme.fg("error", formatError(r)), 0, 0));
+							container.addChild(new Text(theme.fg("error", formatErrorExpanded(r)), 0, 0));
 						}
 
 						// Show tool calls
