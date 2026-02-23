@@ -1,7 +1,7 @@
 {
-  "name": "agentic-dev-workflow",
+  "name": "pi-flow",
   "version": "1.0.0",
-  "description": "A state-of-the-art agentic development workflow for pi — multi-agent execution with parallel scouts, three-gate review, and full lifecycle from research to ship.",
+  "description": "A deliberate agentic development workflow for pi — multi-agent execution, three-gate review, and full lifecycle from research to ship.",
   "keywords": ["pi-package"],
   "license": "MIT",
   "type": "module",

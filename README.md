@@ -5,14 +5,14 @@ A state-of-the-art agentic development workflow for [pi](https://github.com/badl
 ## Install
 
 ```bash
-pi install git:github.com/josorio7122/agentic-dev-workflow
+pi install git:github.com/josorio7122/pi-flow
 ```
 
 ## What's Included
 
 - **13 skills** — full workflow from research through shipping
 - **11 agents** — specialist subagents for every phase
-- **2 extensions** — workflow phase status bar, PR review widget
+- **1 extension** — PR review widget
 - **1 prompt template** — `/pr-review` for deep GitHub PR analysis
 
 ---
@@ -124,6 +124,8 @@ After quality review passes, pi dispatches `security-reviewer` on the diff. Secu
 
 When all three gates pass, the task is marked complete. Pi moves to the next task. You watch it all happen in the subagent panel — each agent's tool calls, what it read, what it found.
 
+After each task completes, the implementer appends its status to `docs/plans/PROGRESS.md` — so if you close the session and come back later, the next session reads that file first and resumes exactly where you left off.
+
 When all tasks complete, pi dispatches the `reviewer` agent for a final holistic pass over the entire branch diff — checking consistency across tasks, integration quality, anything the per-task reviewers might have missed.
 
 **Step 7 — Ship**
@@ -136,18 +138,6 @@ Pi loads `finishing-a-development-branch`. It:
 - `git worktree remove .worktrees/feature/oauth-login`
 
 You get a PR URL. Done.
-
----
-
-## The Workflow Status Bar
-
-The footer shows where you are in the workflow:
-
-```
-understand → [brainstorm] → spec → plan → execute → review → ship
-```
-
-It updates automatically as skills are loaded. You always know which phase you're in.
 
 ---
 
