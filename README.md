@@ -16,8 +16,7 @@ pi install git:github.com/josorio7122/pi-flow
 |---|---|---|
 | **Skills** | 13 | Full workflow from research through shipping |
 | **Agents** | 11 | Specialist subagents for every phase |
-| **Extensions** | 1 | PR review widget |
-| **Prompt templates** | 1 | `/pr-review` for deep GitHub PR analysis |
+| **Extensions** | 1 | Subagent tool with parallel + chain execution |
 
 ---
 
@@ -214,7 +213,7 @@ Skills activate automatically when the task matches. To force-load:
 
 ## PR review
 
-Paste a GitHub PR URL. The `/pr-review` prompt activates, showing a widget with title and author. It:
+Load the skill with `/skill:pr-review` or paste a GitHub PR URL. It:
 
 1. Fetches full diff, all comments, all reviews, and CI status via `gh` CLI
 2. Reads every changed file in full
