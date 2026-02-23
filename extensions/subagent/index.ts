@@ -28,7 +28,7 @@ import type { AgentToolResult } from "@mariozechner/pi-agent-core";
 import type { Message } from "@mariozechner/pi-ai";
 import { StringEnum } from "@mariozechner/pi-ai";
 import { type ExtensionAPI, getMarkdownTheme } from "@mariozechner/pi-coding-agent";
-import { Container, Markdown, Spacer, Text } from "@mariozechner/pi-tui";
+import { Box, Container, Markdown, Spacer, Text } from "@mariozechner/pi-tui";
 import { Type } from "@sinclair/typebox";
 import { type AgentConfig, type AgentScope, discoverAgents } from "./agents.js";
 
@@ -238,25 +238,42 @@ function formatError(r: SingleResult): string {
 /**
  * Multi-line error detail for expanded view.
  */
-function formatErrorExpanded(r: SingleResult): string {
-	const lines: string[] = [];
-	if (r.stopReason && r.stopReason !== "end_turn") lines.push(`Stop reason: ${r.stopReason}`);
-	if (r.exitCode !== 0) lines.push(`Exit code: ${r.exitCode}`);
-	if (r.errorMessage) lines.push(`Error: ${r.errorMessage.trim()}`);
+/**
+ * Render a structured error block for the expanded view.
+ * Uses toolErrorBg to make failures visually distinct from output.
+ */
+function renderErrorBlock(r: SingleResult, theme: { fg: (color: any, text: string) => string; bg: (color: any, text: string) => string }): Box {
+	const box = new Box(1, 0, (s: string) => theme.bg("toolErrorBg", s));
+	if (r.stopReason && r.stopReason !== "end_turn") {
+		box.addChild(new Text(theme.fg("error", `✗ stop: ${r.stopReason}`), 0, 0));
+	}
+	if (r.exitCode !== 0) {
+		box.addChild(new Text(theme.fg("error", `✗ exit ${r.exitCode}`), 0, 0));
+	}
+	if (r.errorMessage) {
+		box.addChild(new Text(theme.fg("error", r.errorMessage.trim()), 0, 0));
+	}
 	const stderr = r.stderr?.trim();
 	if (stderr) {
 		const { meaningful, hasStacks } = parseSterr(stderr);
 		if (meaningful.length > 0) {
-			lines.push("─── stderr ───");
-			lines.push(...meaningful);
-			if (hasStacks) lines.push("(Node.js stack trace stripped)");
+			for (const line of meaningful) {
+				box.addChild(new Text(theme.fg("error", line), 0, 0));
+			}
+			if (hasStacks) {
+				box.addChild(new Text(theme.fg("muted", "(stack trace stripped)"), 0, 0));
+			}
 		}
 	}
-	if (lines.length === 0) {
+	// If nothing was added yet, show a fallback
+	if (box.children.length === 0) {
 		const lastOutput = getFinalOutput(r.messages);
-		lines.push(lastOutput ? `Last output: ${lastOutput.slice(0, 300)}` : "subprocess crashed with no output");
+		box.addChild(new Text(
+			theme.fg("error", lastOutput ? lastOutput.slice(0, 200) : "subprocess crashed with no output"),
+			0, 0,
+		));
 	}
-	return lines.join("\n");
+	return box;
 }
 
 function getDisplayItems(messages: Message[]): DisplayItem[] {
@@ -842,8 +859,10 @@ export default function (pi: ExtensionAPI) {
 					let header = `${icon} ${theme.fg("toolTitle", theme.bold(r.agent))}${theme.fg("muted", ` (${r.agentSource})`)}`;
 					if (isError) header += ` ${theme.fg("error", `[${r.stopReason || "failed"}]`)}`;
 					container.addChild(new Text(header, 0, 0));
-					if (isError)
-						container.addChild(new Text(theme.fg("error", formatErrorExpanded(r)), 0, 0));
+					if (isError) {
+						container.addChild(new Spacer(1));
+						container.addChild(renderErrorBlock(r, theme));
+					}
 					container.addChild(new Spacer(1));
 					container.addChild(new Text(theme.fg("muted", "─── Task ───"), 0, 0));
 					container.addChild(new Text(theme.fg("dim", r.task), 0, 0));
@@ -875,15 +894,28 @@ export default function (pi: ExtensionAPI) {
 					return container;
 				}
 
-				let text = `${icon} ${theme.fg("toolTitle", theme.bold(r.agent))}${theme.fg("muted", ` (${r.agentSource})`)}`;
 				if (isError) {
-					text += ` ${theme.fg("error", `[${r.stopReason || "failed"}]`)}`;
-					text += `\n${theme.fg("error", formatError(r))}`;
-					// Still show any partial output so the user can see how far it got
+					// Error: use a Box with toolErrorBg so it stands out visually
+					const box = new Box(1, 0, (s: string) => theme.bg("toolErrorBg", s));
+					// Header: ✗ agentname [reason]
+					let header = `${icon} ${theme.fg("toolTitle", theme.bold(r.agent))}`;
+					const reason = r.stopReason && r.stopReason !== "end_turn" ? r.stopReason : "failed";
+					header += ` ${theme.fg("error", `[${reason}]`)}`;
+					box.addChild(new Text(header, 0, 0));
+					// Cause: the most useful single line
+					box.addChild(new Text(theme.fg("error", formatError(r)), 0, 0));
+					// Hint to expand for full details
+					box.addChild(new Text(theme.fg("muted", "(Ctrl+O for full error)"), 0, 0));
+					// Still show partial output if any
 					if (displayItems.length > 0) {
-						text += `\n${theme.fg("muted", "─── last output ───")}\n${renderDisplayItems(displayItems, 5)}`;
+						box.addChild(new Text(theme.fg("muted", "─── last output ───"), 0, 0));
+						box.addChild(new Text(renderDisplayItems(displayItems, 3), 0, 0));
 					}
-				} else if (displayItems.length === 0) {
+					return box;
+				}
+
+				let text = `${icon} ${theme.fg("toolTitle", theme.bold(r.agent))}${theme.fg("muted", ` (${r.agentSource})`)}`;
+				if (displayItems.length === 0) {
 					text += `\n${theme.fg("muted", "(no output)")}`;
 				} else {
 					text += `\n${renderDisplayItems(displayItems, COLLAPSED_ITEM_COUNT)}`;
@@ -925,7 +957,8 @@ export default function (pi: ExtensionAPI) {
 					);
 
 					for (const r of details.results) {
-						const rIcon = r.exitCode === 0 ? theme.fg("success", "✓") : theme.fg("error", "✗");
+						const rError = r.exitCode !== 0 || r.stopReason === "error" || r.stopReason === "aborted";
+						const rIcon = rError ? theme.fg("error", "✗") : theme.fg("success", "✓");
 						const displayItems = getDisplayItems(r.messages);
 						const finalOutput = getFinalOutput(r.messages);
 
@@ -938,6 +971,10 @@ export default function (pi: ExtensionAPI) {
 							),
 						);
 						container.addChild(new Text(theme.fg("muted", "Task: ") + theme.fg("dim", r.task), 0, 0));
+
+						if (rError) {
+							container.addChild(renderErrorBlock(r, theme));
+						}
 
 						// Show tool calls
 						for (const item of displayItems) {
@@ -971,29 +1008,44 @@ export default function (pi: ExtensionAPI) {
 				}
 
 				// Collapsed view
-				let text =
-					icon +
-					" " +
-					theme.fg("toolTitle", theme.bold("chain ")) +
-					theme.fg("accent", `${successCount}/${details.results.length} steps`);
+				// Collapsed chain view — use Container so errors can use Box
+				const chainContainer = new Container();
+				chainContainer.addChild(new Text(
+					icon + " " + theme.fg("toolTitle", theme.bold("chain ")) + theme.fg("accent", `${successCount}/${details.results.length} steps`),
+					0, 0,
+				));
 				for (const r of details.results) {
 					const rError = r.exitCode !== 0 || r.stopReason === "error" || r.stopReason === "aborted";
 					const rIcon = r.exitCode === 0 ? theme.fg("success", "✓") : theme.fg("error", "✗");
 					const displayItems = getDisplayItems(r.messages);
-					text += `\n\n${theme.fg("muted", `─── Step ${r.step}: `)}${theme.fg("accent", r.agent)} ${rIcon}`;
+					chainContainer.addChild(new Spacer(1));
 					if (rError) {
-						text += `\n${theme.fg("error", formatError(r))}`;
-						if (displayItems.length > 0) text += `\n${renderDisplayItems(displayItems, 3)}`;
-					} else if (displayItems.length === 0) {
-						text += `\n${theme.fg("muted", "(no output)")}`;
+						const errBox = new Box(1, 0, (s: string) => theme.bg("toolErrorBg", s));
+						const reason = r.stopReason && r.stopReason !== "end_turn" ? r.stopReason : "failed";
+						errBox.addChild(new Text(
+							`${rIcon} ${theme.fg("muted", `Step ${r.step}:`)} ${theme.fg("toolTitle", theme.bold(r.agent ?? ""))} ${theme.fg("error", `[${reason}]`)}`,
+							0, 0,
+						));
+						errBox.addChild(new Text(theme.fg("error", formatError(r)), 0, 0));
+						errBox.addChild(new Text(theme.fg("muted", "(Ctrl+O for full error)"), 0, 0));
+						if (displayItems.length > 0) {
+							errBox.addChild(new Text(renderDisplayItems(displayItems, 3), 0, 0));
+						}
+						chainContainer.addChild(errBox);
 					} else {
-						text += `\n${renderDisplayItems(displayItems, 5)}`;
+						let stepText = `${theme.fg("muted", `─── Step ${r.step}: `)}${theme.fg("accent", r.agent ?? "")} ${rIcon}`;
+						if (displayItems.length === 0) stepText += `\n${theme.fg("muted", "(no output)")}`;
+						else stepText += `\n${renderDisplayItems(displayItems, 5)}`;
+						chainContainer.addChild(new Text(stepText, 0, 0));
 					}
 				}
 				const usageStr = formatUsageStats(aggregateUsage(details.results));
-				if (usageStr) text += `\n\n${theme.fg("dim", `Total: ${usageStr}`)}`;
-				text += `\n${theme.fg("muted", "(Ctrl+O to expand)")}`;
-				return new Text(text, 0, 0);
+				if (usageStr) {
+					chainContainer.addChild(new Spacer(1));
+					chainContainer.addChild(new Text(theme.fg("dim", `Total: ${usageStr}`), 0, 0));
+				}
+				chainContainer.addChild(new Text(theme.fg("muted", "(Ctrl+O to expand)"), 0, 0));
+				return chainContainer;
 			}
 
 			if (details.mode === "parallel") {
@@ -1033,7 +1085,7 @@ export default function (pi: ExtensionAPI) {
 						container.addChild(new Text(theme.fg("muted", "Task: ") + theme.fg("dim", r.task), 0, 0));
 
 						if (rError) {
-							container.addChild(new Text(theme.fg("error", formatErrorExpanded(r)), 0, 0));
+							container.addChild(renderErrorBlock(r, theme));
 						}
 
 						// Show tool calls
@@ -1067,8 +1119,12 @@ export default function (pi: ExtensionAPI) {
 					return container;
 				}
 
-				// Collapsed view (or still running)
-				let text = `${icon} ${theme.fg("toolTitle", theme.bold("parallel "))}${theme.fg("accent", status)}`;
+				// Collapsed view (or still running) — use Container so errors can use Box
+				const container = new Container();
+				container.addChild(new Text(
+					`${icon} ${theme.fg("toolTitle", theme.bold("parallel "))}${theme.fg("accent", status)}`,
+					0, 0,
+				));
 				for (const r of details.results) {
 					const rError = r.exitCode > 0 || r.stopReason === "error" || r.stopReason === "aborted";
 					const rIcon =
@@ -1078,24 +1134,47 @@ export default function (pi: ExtensionAPI) {
 								? theme.fg("success", "✓")
 								: theme.fg("error", "✗");
 					const displayItems = getDisplayItems(r.messages);
-					text += `\n\n${theme.fg("muted", "─── ")}${theme.fg("accent", r.agent)} ${rIcon}`;
+					container.addChild(new Spacer(1));
 					if (r.exitCode === -1) {
-						text += `\n${theme.fg("muted", "(running...)")}`;
+						container.addChild(new Text(
+							`${theme.fg("muted", "─── ")}${theme.fg("accent", r.agent)} ${rIcon}\n${theme.fg("muted", "(running...)")}`,
+							0, 0,
+						));
 					} else if (rError) {
-						text += `\n${theme.fg("error", formatError(r))}`;
-						if (displayItems.length > 0) text += `\n${renderDisplayItems(displayItems, 3)}`;
-					} else if (displayItems.length === 0) {
-						text += `\n${theme.fg("muted", "(no output)")}`;
+						// Highlighted error block per failed agent
+						const errBox = new Box(1, 0, (s: string) => theme.bg("toolErrorBg", s));
+						const reason = r.stopReason && r.stopReason !== "end_turn" ? r.stopReason : "failed";
+						errBox.addChild(new Text(
+							`${rIcon} ${theme.fg("toolTitle", theme.bold(r.agent))} ${theme.fg("error", `[${reason}]`)}`,
+							0, 0,
+						));
+						errBox.addChild(new Text(theme.fg("error", formatError(r)), 0, 0));
+						errBox.addChild(new Text(theme.fg("muted", "(Ctrl+O for full error)"), 0, 0));
+						if (displayItems.length > 0) {
+							errBox.addChild(new Text(renderDisplayItems(displayItems, 3), 0, 0));
+						}
+						container.addChild(errBox);
 					} else {
-						text += `\n${renderDisplayItems(displayItems, 5)}`;
+						let agentText = `${theme.fg("muted", "─── ")}${theme.fg("accent", r.agent)} ${rIcon}`;
+						if (displayItems.length === 0) {
+							agentText += `\n${theme.fg("muted", "(no output)")}`;
+						} else {
+							agentText += `\n${renderDisplayItems(displayItems, 5)}`;
+						}
+						container.addChild(new Text(agentText, 0, 0));
 					}
 				}
 				if (!isRunning) {
 					const usageStr = formatUsageStats(aggregateUsage(details.results));
-					if (usageStr) text += `\n\n${theme.fg("dim", `Total: ${usageStr}`)}`;
+					if (usageStr) {
+						container.addChild(new Spacer(1));
+						container.addChild(new Text(theme.fg("dim", `Total: ${usageStr}`), 0, 0));
+					}
 				}
-				if (!expanded) text += `\n${theme.fg("muted", "(Ctrl+O to expand)")}`;
-				return new Text(text, 0, 0);
+				if (!expanded) {
+					container.addChild(new Text(theme.fg("muted", "(Ctrl+O to expand)"), 0, 0));
+				}
+				return container;
 			}
 
 			const text = result.content[0];
