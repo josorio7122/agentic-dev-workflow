@@ -103,8 +103,8 @@ If PROGRESS.md doesn't exist but git log shows commits, the feature was started 
 
 See these files for the exact `subagent()` call syntax for each role:
 
-- `./implementer-prompt.md` — how to dispatch the implementer
-- `./spec-reviewer-prompt.md` — how to dispatch the spec reviewer (and handle ❌)
+- `./references/implementer-prompt.md` — how to dispatch the implementer
+- `./references/spec-reviewer-prompt.md` — how to dispatch the spec reviewer (and handle ❌)
 - `./references/code-reviewer-prompt.md` — how to dispatch the quality reviewer (and handle ❌)
 
 ## Example Workflow

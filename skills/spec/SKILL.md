@@ -8,10 +8,10 @@ description: "Write a complete Spec-Driven Development (SDD) spec for a software
 **Announce at start:** "I'm using the spec skill to produce a complete SDD spec."
 
 Load all reference documents before starting:
-- [references/PHASES.md](references/PHASES.md) — interview questions and per-artifact requirements
-- [references/COMPLIANCE-CHECKLIST.md](references/COMPLIANCE-CHECKLIST.md) — pass/fail gates between phases
-- [references/SPEC-TEMPLATES.md](references/SPEC-TEMPLATES.md) — canonical templates for every artifact
-- [references/ANTI-PATTERNS.md](references/ANTI-PATTERNS.md) — what to detect and fix during compliance passes
+- [references/phases.md](references/phases.md) — interview questions and per-artifact requirements
+- [references/compliance-checklist.md](references/compliance-checklist.md) — pass/fail gates between phases
+- [references/spec-templates.md](references/spec-templates.md) — canonical templates for every artifact
+- [references/anti-patterns.md](references/anti-patterns.md) — what to detect and fix during compliance passes
 
 ---
 
@@ -44,7 +44,7 @@ Phase 1: Domain Interview  →  Phase 2: Foundation  →  Phase 3: Subsystem Spe
 
 ### Phase 1 — Domain Interview
 
-Load [PHASES.md](references/PHASES.md) for the full question sequence (Q1–Q11).
+Load [PHASES.md](references/phases.md) for the full question sequence (Q1–Q11).
 
 **Rule:** One question per message. Wait for the answer before asking the next.
 
@@ -55,13 +55,13 @@ End the interview with a summary of: platform purpose, user roles, core entities
 Write in order: GLOSSARY.md → CONSTITUTION.md → DATA-MODEL.md.
 
 After each file:
-1. Run the compliance checks from [COMPLIANCE-CHECKLIST.md](references/COMPLIANCE-CHECKLIST.md) for that artifact
+1. Run the compliance checks from [COMPLIANCE-CHECKLIST.md](references/compliance-checklist.md) for that artifact
 2. Print the checklist with ✅ or ❌ per item
 3. Fix every ❌ before continuing
 4. Show the file to the user and get confirmation
 5. Commit
 
-See [PHASES.md](references/PHASES.md) for per-artifact requirements. Use [SPEC-TEMPLATES.md](references/SPEC-TEMPLATES.md) for structure.
+See [PHASES.md](references/phases.md) for per-artifact requirements. Use [SPEC-TEMPLATES.md](references/spec-templates.md) for structure.
 
 ### Phase 3 — Overview + Subsystem Specs
 
@@ -72,11 +72,11 @@ After each file:
 2. Scan for anti-patterns (especially: implementation bleeding, vague user stories, untestable criteria)
 3. Fix all findings, show file, confirm, commit
 
-See [PHASES.md](references/PHASES.md) for required sections. See [ANTI-PATTERNS.md](references/ANTI-PATTERNS.md) for what to scan for.
+See [PHASES.md](references/phases.md) for required sections. See [ANTI-PATTERNS.md](references/anti-patterns.md) for what to scan for.
 
 ### Phase 4 — API Contract + UI Spec
 
-Write specs/06-api.md (all endpoints, requests, responses, error codes). Then write specs/07-ui.md (behavioral statements only — see the critical rule in [PHASES.md](references/PHASES.md)).
+Write specs/06-api.md (all endpoints, requests, responses, error codes). Then write specs/07-ui.md (behavioral statements only — see the critical rule in [PHASES.md](references/phases.md)).
 
 After each file: compliance check → fix → confirm → commit.
 
@@ -84,9 +84,9 @@ Audit after specs/06-api.md: every error code used in any subsystem spec must be
 
 ### Phase 5 — README + Final Pass
 
-Write README.md (see [PHASES.md](references/PHASES.md) for required sections including the LLM usage guide).
+Write README.md (see [PHASES.md](references/phases.md) for required sections including the LLM usage guide).
 
-Then run the full cross-cutting checks from Section 8 of [COMPLIANCE-CHECKLIST.md](references/COMPLIANCE-CHECKLIST.md). Fix every failure.
+Then run the full cross-cutting checks from Section 8 of [COMPLIANCE-CHECKLIST.md](references/compliance-checklist.md). Fix every failure.
 
 Final commit:
 ```bash
@@ -98,7 +98,7 @@ git add -A && git commit -m "spec: complete SDD spec — all compliance checks p
 ## Compliance Protocol
 
 At every compliance check:
-1. Load the relevant section of COMPLIANCE-CHECKLIST.md
+1. Load the relevant section of compliance-checklist.md
 2. Check each item explicitly — do not assume
 3. Print ✅ or ❌ per item
 4. Fix every ❌ immediately, then re-check
