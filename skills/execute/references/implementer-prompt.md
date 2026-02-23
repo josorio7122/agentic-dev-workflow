@@ -2,6 +2,8 @@
 
 Use this when dispatching an implementer subagent via the `subagent` tool.
 
+> **Parallel dispatch:** When running multiple implementers in parallel, all must use the **same `cwd`** — the shared worktree. Never give each implementer its own worktree. Separate worktrees branch off independently and cannot be recombined without merge conflicts.
+
 ## Tool Call
 
 ```

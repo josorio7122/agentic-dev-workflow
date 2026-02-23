@@ -61,11 +61,43 @@ Then read the plan file and pick up at the **first task not marked ✅ Complete*
 ### Step 1: Load the plan
 Read the plan file once. Extract all tasks with their full text. Note the working directory (worktree path). Create a TodoWrite list.
 
+### Parallel vs sequential dispatch
+
+Before dispatching, check whether tasks can run in parallel:
+
+**Run parallel** when ALL are true:
+- Tasks touch different files (no overlap)
+- No task depends on output from another task in the batch
+- Each task is self-contained (creates its own types, tests, etc.)
+
+**Run sequentially** when ANY is true:
+- Task B imports or builds on code created by Task A
+- Tasks touch the same file
+- Order matters for correctness
+
+**Critical — parallel implementers MUST share the same worktree:**
+
+```
+✅ Correct
+subagent(tasks: [
+  { agent: "implementer", task: "Task 1 ...", cwd: "/project/.worktrees/feature/my-feat" },
+  { agent: "implementer", task: "Task 2 ...", cwd: "/project/.worktrees/feature/my-feat" },
+])
+
+❌ Wrong — each in its own worktree
+subagent(tasks: [
+  { agent: "implementer", task: "Task 1 ...", cwd: "/project/.worktrees/feature/task-1" },
+  { agent: "implementer", task: "Task 2 ...", cwd: "/project/.worktrees/feature/task-2" },
+])
+```
+
+Separate worktrees branch off independently — their changes diverge and cannot be combined without manual merge conflicts. One worktree per feature branch, shared by all implementers working on that feature.
+
 ### Step 2: Per-task loop
 
 ```
-For each task:
-  1. Dispatch implementer subagent
+For each task (or batch of parallel tasks):
+  1. Dispatch implementer subagent(s) — all with cwd pointing to the shared worktree
      → If implementer asks questions: answer them, re-dispatch
      → Implementer implements, runs TDD, commits, self-reviews, reports back
 
@@ -188,6 +220,7 @@ subagent(agent: "branch-reviewer", task: "Final review of entire feature impleme
 
 **Never:**
 - Implement on main/master without explicit user consent
+- Give parallel implementers different worktrees — they must all share the same one
 - Skip spec compliance review
 - Skip code quality review
 - Skip security review
