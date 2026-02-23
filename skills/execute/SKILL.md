@@ -1,6 +1,6 @@
 ---
 name: execute
-description: Use when executing implementation plans with independent tasks in the current session. Dispatches fresh subagents per task with two-stage review (spec compliance, then code quality).
+description: Executes an implementation plan task-by-task using fresh subagents with three-gate review per task — spec compliance, code quality, then security. Use after plan to run a plan in the current session. Produces a reviewed, committed implementation ready to ship.
 metadata:
   author: josorio7122
   version: "1.0"
