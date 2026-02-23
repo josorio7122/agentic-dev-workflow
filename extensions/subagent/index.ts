@@ -200,9 +200,23 @@ function formatError(r: SingleResult): string {
 	}
 	const stderr = r.stderr?.trim();
 	if (stderr) {
-		// Trim to last 400 chars so it doesn't flood the display
-		const trimmed = stderr.length > 400 ? `...${stderr.slice(-400)}` : stderr;
-		parts.push(`stderr: ${trimmed}`);
+		// The actual error message is always at the START of stderr.
+		// Node.js unhandled rejection stacks appear at the END — don't show those.
+		// Strategy: take the first non-empty line as the primary signal,
+		// skip lines that look like Node.js stack frames or "Node.js vX" footers.
+		const lines = stderr.split("\n").map((l) => l.trim()).filter(Boolean);
+		const isStackFrame = (l: string) =>
+			l.startsWith("at ") || l.startsWith("(node:") || /^Node\.js v\d/.test(l) || l === "^";
+		const meaningfulLines = lines.filter((l) => !isStackFrame(l));
+		if (meaningfulLines.length > 0) {
+			// Show up to 3 meaningful lines so multi-line API errors are readable
+			const preview = meaningfulLines.slice(0, 3).join(" | ");
+			parts.push(`stderr: ${preview}`);
+		} else if (lines.length > 0) {
+			// All lines were stack frames — at least show the first one
+			const trimmed = stderr.length > 300 ? `${stderr.slice(0, 300)}...` : stderr;
+			parts.push(`stderr: ${trimmed}`);
+		}
 	}
 	if (parts.length === 0) {
 		// Last resort: show whatever the agent said before dying

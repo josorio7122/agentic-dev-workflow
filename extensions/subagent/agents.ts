@@ -5,7 +5,12 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 import { parseFrontmatter } from "@mariozechner/pi-coding-agent";
+
+// __dirname is not available in ESM and is unreliable when jiti transpiles .ts files.
+// Use import.meta.url instead — jiti always sets this correctly to the source file's URL.
+const _dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export type AgentScope = "user" | "project" | "both";
 
@@ -97,7 +102,8 @@ function findNearestProjectAgentsDir(cwd: string): string | null {
 
 export function discoverAgents(cwd: string, scope: AgentScope): AgentDiscoveryResult {
 	// Agents live alongside this extension file in ./agents/
-	const userDir = path.join(__dirname, "agents");
+	// Use _dirname (derived from import.meta.url) — __dirname is unreliable in jiti-transpiled .ts files.
+	const userDir = path.join(_dirname, "agents");
 	const projectAgentsDir = findNearestProjectAgentsDir(cwd);
 
 	const userAgents = scope === "project" ? [] : loadAgentsFromDir(userDir, "user");
