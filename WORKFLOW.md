@@ -572,10 +572,6 @@ Extensions add persistent behavior to every session without polluting the agent'
 
 ### Planned Extensions
 
-**`context-budget.ts`** — Context usage indicator
-- Shows token usage in status bar
-- Warns at 40% and 60% thresholds with suggestion to offload
-
 **`git-checkpoint.ts`** (already exists as example) — Auto git stash on turns
 - Stashes at each turn, restores on fork
 - Safety net during implementation
@@ -598,9 +594,9 @@ Place `.ts` files in `~/.pi/agent/extensions/`. They load automatically. No comp
 │                                                                      │
 │  SKILLS (loaded on-demand)          EXTENSIONS (always active)       │
 │  ┌─────────────────────────┐        ┌──────────────────────────┐     │
-│  │ exa-search              │        │ context-budget           │     │
-│  │ brave-search            │        │ pr-review                │     │
-│  │ brainstorming           │        └──────────────────────────┘     │
+│  │ exa-search              │        │ pr-review                │     │
+│  │ brave-search            │        └──────────────────────────┘     │
+│  │ brainstorming           │                                         │
 │  │ spec-writer             │                                         │
 │  │ writing-plans           │                                         │
 │  │ using-git-worktrees     │                                         │
