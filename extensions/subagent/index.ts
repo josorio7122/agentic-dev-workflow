@@ -327,12 +327,11 @@ async function runSingleAgent(
 		let wasAborted = false;
 
 		const exitCode = await new Promise<number>((resolve) => {
-			const currentDepth = parseInt(process.env.PI_SUBAGENT_DEPTH ?? "0", 10);
 			const proc = spawn("pi", args, {
 				cwd: cwd ?? defaultCwd,
 				shell: false,
 				stdio: ["ignore", "pipe", "pipe"],
-				env: { ...process.env, PI_SUBAGENT_DEPTH: String(currentDepth + 1) },
+				env: { ...process.env, PI_SUBAGENT_DEPTH: "1" },
 			});
 			let buffer = "";
 
@@ -461,8 +460,10 @@ export default function (pi: ExtensionAPI) {
 	// Without this guard, subagents can spawn their own subagents indefinitely,
 	// creating deep process trees where every ancestor must stay alive waiting for
 	// its children — resulting in dozens of pi processes accumulating in Activity Monitor.
-	if (process.env.PI_SUBAGENT_DEPTH) {
-		return; // Already inside a subagent — do not register this tool
+	// 0 (or unset) = main session → register the tool
+	// 1             = inside a subagent → do NOT register; subagents must not spawn subagents
+	if ((process.env.PI_SUBAGENT_DEPTH ?? "0") !== "0") {
+		return;
 	}
 
 	pi.registerTool({
