@@ -1,7 +1,7 @@
 ---
 name: ship
 description: Cleans up a completed feature branch — reviews commits, squashes if needed, pushes, opens a PR, and removes the worktree. Use after all tasks in a feature are implemented and reviewed.
-compatibility: Requires gh CLI authenticated. Run: gh auth status
+compatibility: "Requires gh CLI authenticated (gh auth status)"
 metadata:
   author: josorio7122
   version: "1.0"
